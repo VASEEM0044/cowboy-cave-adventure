@@ -108,25 +108,33 @@ void main() {
       knight.shoot(); // No-op, should not create projectile or crash
     });
 
-    test('Projectile spawn position uses facingDirection offset correctly', () {
+    test('Projectile spawn position uses facingDirection offset correctly at chest height', () {
       final game = CowboyCaveGame(levelNumber: 1);
       final knight = KnightPlayer(spawnPosition: Vector2(100, 200));
       knight.game = game;
 
-      // Facing right (default): spawnPos = position + Vector2(1.0 * 12, -8) = (112, 192)
+      // Facing right (default): spawnPos = (100 + 16 + 10, 200 + 18) = (126, 218)
       expect(knight.facingDirection, equals(1.0));
-      final rightSpawn = knight.position + Vector2(knight.facingDirection * 12, -8);
-      expect(rightSpawn, equals(Vector2(112, 192)));
+      final rightSpawn = Vector2(
+        knight.center.x + (knight.facingDirection * 10.0),
+        knight.position.y + 18.0,
+      );
+      expect(rightSpawn, equals(Vector2(126, 218)));
 
       // Switch to facing left
       knight.startMovingLeft();
       knight.update(0.016);
       expect(knight.facingDirection, equals(-1.0));
+      expect(knight.isFacingRight, isFalse);
 
-      // Facing left: spawnPos = position + Vector2(-1.0 * 12, -8) = (pos.x - 12, pos.y - 8)
-      final leftSpawn = knight.position + Vector2(knight.facingDirection * 12, -8);
-      expect(leftSpawn.x, closeTo(knight.position.x - 12, 0.1));
-      expect(leftSpawn.y, closeTo(knight.position.y - 8, 0.1));
+      // Facing left: center.x is still 100 - (100 * 0.016) + 16 = 114.4
+      // spawnPos = (114.4 - 10, 200 + 18) = (104.4, 218)
+      final leftSpawn = Vector2(
+        knight.center.x + (knight.facingDirection * 10.0),
+        knight.position.y + 18.0,
+      );
+      expect(leftSpawn.x, closeTo(knight.center.x - 10.0, 0.001));
+      expect(leftSpawn.y, closeTo(knight.position.y + 18.0, 0.001));
 
       knight.stopMovingLeft();
     });

@@ -39,10 +39,10 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
   final Vector2 _spawnPosition;
 
   // Physics constants
-  static const double moveSpeed = 90.0;
-  static const double gravity = 520.0;
-  static const double jumpSpeed = 195.0;
-  static const double terminalVelocity = 280.0;
+  static const double moveSpeed = 100.0;
+  static const double gravity = 560.0;
+  static const double jumpSpeed = 246.0;
+  static const double terminalVelocity = 320.0;
 
   // Hitbox geometry inside 32x32 frame
   static final Vector2 hitboxOffset = Vector2(9, 12);
@@ -208,8 +208,11 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
     // Play shoot sound effect
     AudioController.instance.playShoot();
 
-    // Spawn projectile offset ahead of player in the facing direction
-    final spawnPos = position + Vector2(facingDirection * 12, -8);
+    // Spawn projectile offset ahead of player at chest/weapon height (y + 18.0)
+    final spawnPos = Vector2(
+      center.x + (facingDirection * 10.0),
+      position.y + 18.0,
+    );
 
     final projectile = MagicProjectile(
       startPosition: spawnPos,

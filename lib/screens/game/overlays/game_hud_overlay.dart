@@ -17,10 +17,13 @@ class GameHudOverlay extends StatelessWidget {
       top: 10,
       left: 12,
       right: 12,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topCenter,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Top-Left: Player Lives / Hearts
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -189,6 +192,7 @@ class GameHudOverlay extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

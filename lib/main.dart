@@ -7,10 +7,12 @@ import 'core/navigation/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Lock screen orientation to Landscape (Left and Right)
+  // 1. Enable dual-orientation support (Landscape & Portrait)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
   ]);
 
   // 2. Hide system status bar for immersive full-screen retro gaming

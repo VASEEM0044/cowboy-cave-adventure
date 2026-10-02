@@ -16,33 +16,43 @@ class TouchControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+    final horizontalPadding = isLandscape ? 20.0 : 16.0;
+    final verticalPadding = isLandscape ? 14.0 : 20.0;
+    final buttonSize = isLandscape ? 56.0 : 64.0;
+    final jumpSize = isLandscape ? 64.0 : 72.0;
+
     return Positioned.fill(
       child: IgnorePointer(
         ignoring: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Bottom-Left Directional Buttons (Left & Right)
+              // Directional Buttons (Left & Right)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ArcadeTouchButton(
                     icon: Icons.arrow_back_rounded,
                     label: 'LEFT',
-                    size: 56,
+                    size: buttonSize,
                     color: AppConstants.colorSurfaceLight.withAlpha(200),
                     activeColor: AppConstants.colorSecondary.withAlpha(220),
                     onPressStart: () => game.player.startMovingLeft(),
                     onPressEnd: () => game.player.stopMovingLeft(),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: isLandscape ? 14 : 16),
                   _ArcadeTouchButton(
                     icon: Icons.arrow_forward_rounded,
                     label: 'RIGHT',
-                    size: 56,
+                    size: buttonSize,
                     color: AppConstants.colorSurfaceLight.withAlpha(200),
                     activeColor: AppConstants.colorSecondary.withAlpha(220),
                     onPressStart: () => game.player.startMovingRight(),
@@ -51,24 +61,24 @@ class TouchControlsOverlay extends StatelessWidget {
                 ],
               ),
 
-              // Bottom-Right Action Buttons (Shoot & Jump)
+              // Action Buttons (Shoot & Jump)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ArcadeTouchButton(
                     icon: Icons.flash_on_rounded,
                     label: 'SHOOT',
-                    size: 56,
+                    size: buttonSize,
                     color: AppConstants.colorAccent.withAlpha(180),
                     activeColor: AppConstants.colorAccent,
                     onPressStart: () => game.player.shoot(),
                     onPressEnd: () {},
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: isLandscape ? 14 : 16),
                   _ArcadeTouchButton(
                     icon: Icons.arrow_upward_rounded,
                     label: 'JUMP',
-                    size: 64,
+                    size: jumpSize,
                     color: AppConstants.colorPrimary.withAlpha(200),
                     activeColor: AppConstants.colorPrimary,
                     onPressStart: () => game.player.jump(),

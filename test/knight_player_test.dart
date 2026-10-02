@@ -28,9 +28,10 @@ void main() {
       expect(player.velocity, equals(Vector2.zero()));
       expect(player.isOnGround, isFalse);
       expect(player.isFacingRight, isTrue);
-      expect(KnightPlayer.moveSpeed, equals(90.0));
-      expect(KnightPlayer.gravity, equals(520.0));
-      expect(KnightPlayer.jumpSpeed, equals(195.0));
+      expect(KnightPlayer.moveSpeed, equals(100.0));
+      expect(KnightPlayer.gravity, equals(560.0));
+      expect(KnightPlayer.jumpSpeed, equals(246.0));
+      expect(KnightPlayer.terminalVelocity, equals(320.0));
     });
 
     test('KnightPlayer jump requires isOnGround to be true', () {

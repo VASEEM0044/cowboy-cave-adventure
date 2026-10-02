@@ -68,25 +68,30 @@ class LevelSelectScreen extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 600),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      itemCount: AppConstants.totalLevels,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.85,
-                      ),
-                      itemBuilder: (context, index) {
-                        final levelNumber = index + 1;
-                        final isUnlocked = levelNumber == 1;
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 480;
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          itemCount: AppConstants.totalLevels,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isWide ? 5 : 3,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemBuilder: (context, index) {
+                            final levelNumber = index + 1;
+                            final isUnlocked = levelNumber == 1;
 
-                        return _LevelCard(
-                          levelNumber: levelNumber,
-                          isUnlocked: isUnlocked,
-                          onTap: isUnlocked
-                              ? () => _onLevelSelected(context, levelNumber)
-                              : null,
+                            return _LevelCard(
+                              levelNumber: levelNumber,
+                              isUnlocked: isUnlocked,
+                              onTap: isUnlocked
+                                  ? () => _onLevelSelected(context, levelNumber)
+                                  : null,
+                            );
+                          },
                         );
                       },
                     ),
