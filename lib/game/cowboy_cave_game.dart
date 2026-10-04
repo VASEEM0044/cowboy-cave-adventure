@@ -30,7 +30,7 @@ class CowboyCaveGame extends FlameGame
     with HasCollisionDetection, HasKeyboardHandlerComponents {
   CowboyCaveGame({
     this.levelNumber = 1,
-    bool enableDebugMode = false,
+    bool enableDebugMode = true,
   }) : super(
           camera: CameraComponent.withFixedResolution(
             width: AppConstants.virtualWidth,
@@ -93,10 +93,26 @@ class CowboyCaveGame extends FlameGame
       levelId: 'Level_0',
     );
 
+    // 0. Render newly added LDtk background image at the bottom layer (priority: -100)
+    if (levelData.bgFileName != null && levelData.bgFileName!.isNotEmpty) {
+      try {
+        final bgImage = await images.load(levelData.bgFileName!);
+        final bgComponent = SpriteComponent(
+          sprite: Sprite(bgImage),
+          size: Vector2(levelData.width, levelData.height),
+          position: Vector2.zero(),
+          priority: -100,
+        );
+        await world.add(bgComponent);
+      } catch (e) {
+        debugPrint('Warning: Could not load background image ${levelData.bgFileName}: $e');
+      }
+    }
+
     // 1. Add static visual map component to the world
     await world.add(LdtkMapComponent(levelData));
 
-    // 2. Add static solid collision barriers to the world
+    // 2. Add static solid collision barriers to the world (16x16 blocks from IntGrid)
     for (final box in levelData.collisionBoxes) {
       final solidBlock = SolidBlock(
         position: Vector2(box.x, box.y),
@@ -110,7 +126,7 @@ class CowboyCaveGame extends FlameGame
     final spawn = levelData.playerSpawn;
     final spawnPos = spawn != null
         ? Vector2(spawn.x, spawn.y - (32 - spawn.height))
-        : Vector2(16, 208);
+        : Vector2(0, 208);
 
     player = KnightPlayer(spawnPosition: spawnPos);
     await world.add(player);
@@ -168,18 +184,16 @@ class CowboyCaveGame extends FlameGame
     enemies.clear();
 
     try {
-      // Spawn Slime enemies from LDtk entities
-      // In LDtk, Slime entities are placed with grid size 16 at y=224, feet on ground y=240.
-      // For 24x24 sprite, y position = 224 - (24 - 16) = 216.
-      for (final entity in levelData.entities) {
-        if (entity.identifier == 'Slime') {
-          final slimeY = entity.y - (24 - entity.height);
-          final slime = SlimeEnemy(
-            spawnPosition: Vector2(entity.x, slimeY.toDouble()),
-          );
-          enemies.add(slime);
-          await world.add(slime);
-        }
+      // Loop over ALL Slime entity instances individually to ensure separate coordinates
+      final slimes = levelData.entities.where((e) => e.identifier == 'Slime');
+      for (final instance in slimes) {
+        final x = instance.x;
+        final y = instance.y - (24 - instance.height);
+        final slime = SlimeEnemy(
+          position: Vector2(x, y),
+        );
+        enemies.add(slime);
+        await world.add(slime);
       }
     } catch (_) {
       // levelData not yet loaded in unit test context

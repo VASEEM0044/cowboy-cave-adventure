@@ -40,8 +40,9 @@ class LdtkMapComponent extends PositionComponent with HasGameReference<FlameGame
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.x, size.y));
 
-    // Optional background fill
-    if (levelData.bgColorHex != null) {
+    // Optional background fill (only if no background image is configured)
+    if (levelData.bgColorHex != null &&
+        (levelData.bgFileName == null || levelData.bgFileName!.isEmpty)) {
       final color = _parseHexColor(levelData.bgColorHex!);
       final bgPaint = Paint()..color = color;
       canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), bgPaint);

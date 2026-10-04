@@ -44,9 +44,9 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
   static const double jumpSpeed = 246.0;
   static const double terminalVelocity = 320.0;
 
-  // Hitbox geometry inside 32x32 frame
-  static final Vector2 hitboxOffset = Vector2(9, 12);
-  static final Vector2 hitboxSize = Vector2(14, 20);
+  // Hitbox geometry inside 32x32 frame (bottom aligned with character's feet)
+  static final Vector2 hitboxOffset = Vector2(9, 10);
+  static final Vector2 hitboxSize = Vector2(14, 22);
 
   // Runtime physics state
   Vector2 velocity = Vector2.zero();
@@ -389,8 +389,8 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
       );
 
       if (playerRect.overlaps(blockRect)) {
-        if (velocity.y > 0) {
-          // Falling downward -> land on top of solid block
+        if (velocity.y >= 0) {
+          // Falling downward or resting -> land on top of solid block
           position.y = block.position.y - hitboxOffset.y - hitboxSize.y;
           velocity.y = 0;
           grounded = true;

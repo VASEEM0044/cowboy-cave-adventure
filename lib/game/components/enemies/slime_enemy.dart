@@ -19,11 +19,12 @@ import '../solid_block.dart';
 class SlimeEnemy extends SpriteAnimationComponent
     with CollisionCallbacks, HasGameReference<CowboyCaveGame> {
   SlimeEnemy({
-    required Vector2 spawnPosition,
+    Vector2? spawnPosition,
+    Vector2? position,
     this.initialDirection = -1,
-  })  : _spawnPosition = spawnPosition.clone(),
+  })  : _spawnPosition = (spawnPosition ?? position ?? Vector2.zero()).clone(),
         super(
-          position: spawnPosition,
+          position: spawnPosition ?? position ?? Vector2.zero(),
           size: Vector2(24, 24),
           anchor: Anchor.topLeft,
         );

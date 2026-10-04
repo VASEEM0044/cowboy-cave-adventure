@@ -201,12 +201,18 @@ class LdtkLevelData {
     required this.tileLayers,
     required this.collisionBoxes,
     required this.entities,
+    this.bgRelPath,
+    this.bgFileName,
+    this.bgPos,
   });
 
   final String identifier;
   final double width;
   final double height;
   final String? bgColorHex;
+  final String? bgRelPath;
+  final String? bgFileName;
+  final String? bgPos;
   final Map<int, LdtkTilesetDef> tilesets;
   final List<LdtkTileLayer> tileLayers;
   final List<LdtkCollisionBox> collisionBoxes;
@@ -300,6 +306,14 @@ abstract final class LdtkLevelLoader {
     final height = (levelJson['pxHei'] as num?)?.toDouble() ?? 256.0;
     final bgColor = (levelJson['__bgColor'] ?? levelJson['bgColor'] ?? rootJson['defaultLevelBgColor']) as String?;
 
+    // Parse background image properties from LDtk
+    final bgRelPath = levelJson['bgRelPath'] as String?;
+    String? bgFileName;
+    if (bgRelPath != null && bgRelPath.isNotEmpty) {
+      bgFileName = bgRelPath.split('/').last.split('\\').last;
+    }
+    final bgPos = levelJson['bgPos'] as String?;
+
     // 3. Parse visual tile layers and entities
     final layerInstances = levelJson['layerInstances'] as List<dynamic>? ?? [];
     final tileLayers = <LdtkTileLayer>[];
@@ -335,12 +349,11 @@ abstract final class LdtkLevelLoader {
       }
     }
 
-    // 4. Parse Collisions & Generate Optimized Collision Hitboxes
+    // 4. Parse Collisions from IntGrid
     final collisionBoxes = _extractCollisionBoxes(
       layerInstances: layerInstances,
       levelWidth: width,
       levelHeight: height,
-      tileLayers: tileLayers,
     );
 
     return LdtkLevelData(
@@ -348,6 +361,9 @@ abstract final class LdtkLevelLoader {
       width: width,
       height: height,
       bgColorHex: bgColor,
+      bgRelPath: bgRelPath,
+      bgFileName: bgFileName,
+      bgPos: bgPos,
       tilesets: tilesetsMap,
       tileLayers: tileLayers,
       collisionBoxes: collisionBoxes,
@@ -355,19 +371,22 @@ abstract final class LdtkLevelLoader {
     );
   }
 
-  /// Extracts solid blocks from the 'Collisions' IntGrid layer and optimizes by merging horizontal spans.
+  /// Extracts solid blocks strictly from the 'Collisions' IntGrid layer.
+  ///
+  /// Converts each cell index with value == 1 (Solid) to world coordinates:
+  /// worldX = (i % cWid) * 16.0
+  /// worldY = (i ~/ cWid) * 16.0
+  /// Does NOT create any block for value 0, avoiding invisible walls.
   static List<LdtkCollisionBox> _extractCollisionBoxes({
     required List<dynamic> layerInstances,
     required double levelWidth,
     required double levelHeight,
-    required List<LdtkTileLayer> tileLayers,
   }) {
     const double gridSize = 16.0;
     final int cols = (levelWidth / gridSize).round();
     final int rows = (levelHeight / gridSize).round();
 
-    // 2D grid matrix: 1 = solid, 0 = air/empty
-    final grid = List.generate(rows, (_) => List.filled(cols, 0));
+    final collisionBoxes = <LdtkCollisionBox>[];
 
     Map<String, dynamic>? collisionsLayer;
     for (final l in layerInstances) {
@@ -377,61 +396,30 @@ abstract final class LdtkLevelLoader {
       }
     }
 
-    bool hasSolidIntGrid = false;
     if (collisionsLayer != null) {
       final intGridCsv = collisionsLayer['intGridCsv'] as List<dynamic>?;
+      final cWid = (collisionsLayer['__cWid'] as num?)?.toInt() ?? cols;
       if (intGridCsv != null && intGridCsv.isNotEmpty) {
         for (int i = 0; i < intGridCsv.length && i < rows * cols; i++) {
           final val = (intGridCsv[i] as num).toInt();
           if (val == 1) { // 1 = Solid
-            final r = i ~/ cols;
-            final c = i % cols;
-            grid[r][c] = 1;
-            hasSolidIntGrid = true;
+            final gridX = i % cWid;
+            final gridY = i ~/ cWid;
+            final worldX = gridX * gridSize;
+            final worldY = gridY * gridSize;
+            collisionBoxes.add(
+              LdtkCollisionBox(
+                x: worldX,
+                y: worldY,
+                width: gridSize,
+                height: gridSize,
+              ),
+            );
           }
         }
       }
     }
 
-    // Fallback: If IntGrid has no solid values in this LDtk export, populate from solid visual tiles
-    if (!hasSolidIntGrid) {
-      for (final layer in tileLayers) {
-        for (final tile in layer.tiles) {
-          final c = (tile.pxX / gridSize).floor();
-          final r = (tile.pxY / gridSize).floor();
-          if (r >= 0 && r < rows && c >= 0 && c < cols) {
-            grid[r][c] = 1;
-          }
-        }
-      }
-    }
-
-    // Horizontal Span Merging Optimization:
-    // Combines consecutive horizontal solid cells in each row into single continuous bounding boxes.
-    final mergedBoxes = <LdtkCollisionBox>[];
-
-    for (int r = 0; r < rows; r++) {
-      int c = 0;
-      while (c < cols) {
-        if (grid[r][c] == 1) {
-          final startCol = c;
-          while (c + 1 < cols && grid[r][c + 1] == 1) {
-            c++;
-          }
-          final spanCols = c - startCol + 1;
-          mergedBoxes.add(
-            LdtkCollisionBox(
-              x: startCol * gridSize,
-              y: r * gridSize,
-              width: spanCols * gridSize,
-              height: gridSize,
-            ),
-          );
-        }
-        c++;
-      }
-    }
-
-    return mergedBoxes;
+    return collisionBoxes;
   }
 }
