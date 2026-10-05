@@ -48,11 +48,22 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
   static final Vector2 hitboxOffset = Vector2(9, 10);
   static final Vector2 hitboxSize = Vector2(14, 22);
 
+  // Physics parameters & feel enhancements
+  static const double coyoteTimeDuration = 0.12; // 120ms coyote grace period
+  static const double jumpBufferDuration = 0.15; // 150ms jump buffer
+
   // Runtime physics state
   Vector2 velocity = Vector2.zero();
   bool isOnGround = false;
-  bool jumpRequested = false;
+  double _coyoteTimer = 0.0;
+  double _jumpBufferTimer = 0.0;
   bool isFacingRight = true;
+
+  /// Whether a jump is requested (supports coyote-time & input buffering).
+  bool get jumpRequested => _jumpBufferTimer > 0;
+  set jumpRequested(bool val) {
+    _jumpBufferTimer = val ? jumpBufferDuration : 0.0;
+  }
 
   // Life & Hazard states
   bool isDead = false;
@@ -165,6 +176,8 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
     velocity.x = knockbackDirection.x * 130.0;
     velocity.y = -120.0;
     isOnGround = false;
+    _coyoteTimer = 0.0;
+    _jumpBufferTimer = 0.0;
 
     // Activate 1.5-second invulnerability window
     _invulnerabilityTimer = 1.5;
@@ -286,17 +299,28 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
       }
     }
 
+    // 0.3 Update Jump Buffer Timer
+    if (_jumpBufferTimer > 0) {
+      _jumpBufferTimer -= dt;
+      if (_jumpBufferTimer < 0) _jumpBufferTimer = 0;
+    }
+
+    // 0.4 Update Coyote Timer (drains only when airborne)
+    if (!isOnGround && _coyoteTimer > 0) {
+      _coyoteTimer -= dt;
+      if (_coyoteTimer < 0) _coyoteTimer = 0;
+    }
+
     // 1. Horizontal Velocity with speed multiplier applied
     velocity.x = horizontalInput * (moveSpeed * _speedMultiplier);
 
-    // 2. Jump Impulse
-    if (jumpRequested) {
-      jumpRequested = false;
-      if (isOnGround) {
-        velocity.y = -jumpSpeed;
-        isOnGround = false;
-        AudioController.instance.playJump();
-      }
+    // 2. Jump Impulse (buffered and coyote-tolerant)
+    if (_jumpBufferTimer > 0 && (isOnGround || _coyoteTimer > 0)) {
+      _jumpBufferTimer = 0.0;
+      _coyoteTimer = 0.0;
+      isOnGround = false;
+      velocity.y = -jumpSpeed;
+      AudioController.instance.playJump();
     }
 
     // 3. Gravity Acceleration
@@ -341,11 +365,17 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
   }
 
   void _resolveHorizontalCollisions() {
+    // Foot clearance: lift bottom of horizontal test box by 3.0px so floor blocks
+    // directly beneath the player's feet never snag horizontal movement.
+    // Head clearance: 1.0px so walking under ceilings doesn't snag.
+    const footClearance = 3.0;
+    const headClearance = 1.0;
+
     final playerRect = Rect.fromLTWH(
       position.x + hitboxOffset.x,
-      position.y + hitboxOffset.y,
+      position.y + hitboxOffset.y + headClearance,
       hitboxSize.x,
-      hitboxSize.y,
+      hitboxSize.y - footClearance - headClearance,
     );
 
     for (final block in game.solidBlocks) {
@@ -373,10 +403,12 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
   void _resolveVerticalCollisions() {
     bool grounded = false;
 
+    // Use a slightly contracted horizontal footprint (1.0px inset on each side)
+    // so moving past vertical wall corners doesn't cause vertical snapping.
     final playerRect = Rect.fromLTWH(
-      position.x + hitboxOffset.x,
+      position.x + hitboxOffset.x + 1.0,
       position.y + hitboxOffset.y,
-      hitboxSize.x,
+      hitboxSize.x - 2.0,
       hitboxSize.y,
     );
 
@@ -403,6 +435,9 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
     }
 
     isOnGround = grounded;
+    if (isOnGround) {
+      _coyoteTimer = coyoteTimeDuration;
+    }
   }
 
   void _clampToLevelBounds() {
@@ -451,6 +486,8 @@ class KnightPlayer extends SpriteAnimationGroupComponent<PlayerState>
     position = _spawnPosition.clone();
     velocity = Vector2.zero();
     isOnGround = false;
+    _coyoteTimer = 0.0;
+    _jumpBufferTimer = 0.0;
     isDead = false;
     _invulnerabilityTimer = 0;
     _touchMoveLeft = false;

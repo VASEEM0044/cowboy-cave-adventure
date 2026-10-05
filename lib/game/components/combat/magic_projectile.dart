@@ -73,8 +73,51 @@ class MagicProjectile extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
-    // Pure horizontal movement — NO gravity
-    position.x += direction * speed * dt;
+    if (_isConsumed) return;
+
+    final oldX = position.x;
+    final newX = oldX + direction * speed * dt;
+
+    // Continuous collision detection (CCD) against SolidBlocks to prevent tunneling through walls
+    if (isMounted) {
+      final minX = direction > 0 ? oldX : newX;
+      final maxX = direction > 0 ? newX : oldX;
+      final projY = position.y;
+
+      // 1. Check solid wall penetration along swept path
+      for (final block in game.solidBlocks) {
+        final bLeft = block.position.x;
+        final bRight = block.position.x + block.size.x;
+        final bTop = block.position.y;
+        final bBottom = block.position.y + block.size.y;
+
+        // Projectile vertical span is roughly ±4px (radius 4)
+        if (projY + 4 >= bTop && projY - 4 <= bBottom && maxX >= bLeft && minX <= bRight) {
+          _isConsumed = true;
+          removeFromParent();
+          return;
+        }
+      }
+
+      // 2. Check enemy hit along swept path
+      for (final slime in game.enemies) {
+        if (slime.isDead) continue;
+        final sLeft = slime.position.x;
+        final sRight = slime.position.x + slime.size.x;
+        final sTop = slime.position.y;
+        final sBottom = slime.position.y + slime.size.y;
+
+        if (projY + 4 >= sTop && projY - 4 <= sBottom && maxX >= sLeft && minX <= sRight) {
+          _isConsumed = true;
+          slime.die();
+          game.scoreNotifier.value += 25;
+          removeFromParent();
+          return;
+        }
+      }
+    }
+
+    position.x = newX;
 
     // Remove when leaving the 256x256 arena bounds
     if (position.x < -8 || position.x > 264) {
